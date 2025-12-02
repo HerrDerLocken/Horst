@@ -53,20 +53,20 @@ reaction_roles = {}
 # JSON storage path
 REACTION_ROLES_FILE = "reaction_roles.json"
 
-# Farbzuordnung nach Schlüsselwörtern
+# Farbzuordnung nach Schluesselwoertern
 WORD_COLORS = {
-    "MATHE": 3066993,  # Grün
+    "MATHE": 3066993,  # Gruen
     "WISSA": 9442302,  # Lila
     "INGG": 15105570,  # Orange
     "TGI": 3447003,  # Blau
     "Imp. P.": 15548997,  # Rot
 }
 
-DEFAULT_COLOR = 7506394  # Grau für unbekannte Kurse
+DEFAULT_COLOR = 7506394  # Grau fuer unbekannte Kurse
 
 # Mensa color scheme
 MENSA_COLORS = {
-    "header": 3066993,  # Grün
+    "header": 3066993,  # Gruen
     "meal": 5793266,  # Blau
 }
 
@@ -186,7 +186,7 @@ def generate_truth_table_image(expr: str):
                 pos += len(txt)
                 break
             if not matched:
-                raise ValueError(f"Ungültiges Symbol in Ausdruck bei Position {pos}: '{s[pos]}'")
+                raise ValueError(f"Ungueltiges Symbol in Ausdruck bei Position {pos}: '{s[pos]}'")
         return tokens
 
     # -------------- Shunting-yard -> RPN --------------
@@ -210,7 +210,7 @@ def generate_truth_table_image(expr: str):
                 while stack and stack[-1][0] != '(':
                     output.append(stack.pop())
                 if not stack:
-                    raise ValueError("Fehlende öffnende Klammer")
+                    raise ValueError("Fehlende oeffnende Klammer")
                 stack.pop()
             else:
                 # operator
@@ -227,7 +227,7 @@ def generate_truth_table_image(expr: str):
                 stack.append((ttype, tval))
         while stack:
             if stack[-1][0] == '(':
-                raise ValueError("Fehlende schließende Klammer")
+                raise ValueError("Fehlende schliessende Klammer")
             output.append(stack.pop())
         return output
 
@@ -274,13 +274,13 @@ def generate_truth_table_image(expr: str):
                 stack.append(Node('VAR', value=tval))
             elif ttype == '!':
                 if not stack:
-                    raise ValueError("Ungültiger Ausdruck: '!' ohne Operand")
+                    raise ValueError("Ungueltiger Ausdruck: '!' ohne Operand")
                 a = stack.pop()
                 stack.append(Node('NOT', left=a))
             else:
                 # binary
                 if len(stack) < 2:
-                    raise ValueError("Ungültiger Ausdruck: Binärer Operator ohne zwei Operanden")
+                    raise ValueError("Ungueltiger Ausdruck: Binaerer Operator ohne zwei Operanden")
                 b = stack.pop()
                 a = stack.pop()
                 if ttype == '&':
@@ -292,7 +292,7 @@ def generate_truth_table_image(expr: str):
                 else:
                     raise ValueError(f"Unbekannter Operator: {ttype}")
         if len(stack) != 1:
-            raise ValueError("Syntaxfehler im Ausdruck (Überbleibsel im Stack)")
+            raise ValueError("Syntaxfehler im Ausdruck (ueberbleibsel im Stack)")
         return stack[0]
 
     # -------------- Collect "major" steps (Option C) --------------
@@ -634,9 +634,9 @@ def ask_gemini_for_nutrition(dish_name: str):
     prompt = f"""
     Analyze the dish "{dish_name}" (German canteen food).
     Estimate values for a standard portion (approx 350g).
-    Return a SINGLE JSON object with exactly these keys: "kcal", "Eiweiß", "Kohlenhydrate", "Fette".
+    Return a SINGLE JSON object with exactly these keys: "kcal", "Eiweiss", "Kohlenhydrate", "Fette".
     Values should be numbers (int or float).
-    Example: {{"kcal": 500, "Eiweiß": 20, "Kohlenhydrate": 50, "Fette": 15}}
+    Example: {{"kcal": 500, "Eiweiss": 20, "Kohlenhydrate": 50, "Fette": 15}}
     DO NOT output Markdown. DO NOT output explanations. ONLY JSON.
     """
 
@@ -776,7 +776,7 @@ def create_canteen_embeds(meals, date_str):
     # Header Embed
     header_embed = discord.Embed(color=MENSA_COLORS["header"])
     header_embed.set_author(name=f"Mensa-Speiseplan - {date_str}")
-    header_embed.description = f"**Mensa Johanna** - {len(meals)} Gerichte verfügbar"
+    header_embed.description = f"**Mensa Johanna** - {len(meals)} Gerichte verfuegbar"
     embeds.append(header_embed)
 
     # Create an embed for each meal
@@ -818,17 +818,17 @@ def create_canteen_embeds(meals, date_str):
             nutrition_text = ""
             if nutrition.get("kcal"):
                 nutrition_text += f"--> **{nutrition['kcal']} kcal**\n"
-            if nutrition.get("Eiweiß"):
-                nutrition_text += f"--> Eiweiß: {nutrition['Eiweiß']}g\n"
+            if nutrition.get("Eiweiss"):
+                nutrition_text += f"--> Eiweiss: {nutrition['Eiweiss']}g\n"
             if nutrition.get("Kohlenhydrate"):
                 nutrition_text += f"--> Kohlenhydrate: {nutrition['Kohlenhydrate']}g\n"
             if nutrition.get("Fette"):
                 nutrition_text += f"--> Fette: {nutrition['Fette']}g"
 
             if nutrition_text:
-                embed.add_field(name="Nährwerte (geschätzt 350g) NICHT GENAU!", value=nutrition_text, inline=True)
+                embed.add_field(name="Naehrwerte (geschaetzt 350g) NICHT GENAU!", value=nutrition_text, inline=True)
         else:
-            embed.add_field(name="Nährwerte", value="*Keine Daten*", inline=True)
+            embed.add_field(name="Naehrwerte", value="*Keine Daten*", inline=True)
 
         # Add allergens/notes
         if notes:
@@ -851,13 +851,13 @@ async def send_canteen_menu():
     should_send, reason = should_send_daily_message(tomorrow_date)
     if not should_send:
         print(f"Skipping canteen menu send: {reason}")
-        await log_action(f"Mensa-Menü nicht gesendet: {reason}")
+        await log_action(f"Mensa-Menue nicht gesendet: {reason}")
         return
     
     channel = client.get_channel(ESSEN_CHANNEL_ID)
     if not channel:
         print("Channel not found for canteen menu")
-        await log_action("ERROR: Mensa-Menü konnte nicht gesendet werden: Channel nicht gefunden")
+        await log_action("ERROR: Mensa-Menue konnte nicht gesendet werden: Channel nicht gefunden")
         return
 
     role_mention = f"<@&{CANTEEN_ROLE_ID}>"
@@ -868,7 +868,7 @@ async def send_canteen_menu():
     date_str = today.strftime("%A, %d. %B %Y")
 
     if not meals:
-        await log_action(f"Mensa-Menü: Keine Gerichte verfügbar für {today.strftime('%d.%m.%Y')}")
+        await log_action(f"Mensa-Menue: Keine Gerichte verfuegbar fuer {today.strftime('%d.%m.%Y')}")
         return
 
     # Create embeds (meals already have nutrition data)
@@ -885,7 +885,7 @@ async def send_canteen_menu():
             else:
                 await channel.send(embeds=chunk)
 
-    await log_action(f"Mensa-Menü gesendet: {len(meals)} Gerichte für {today.strftime('%d.%m.%Y')}")
+    await log_action(f"Mensa-Menue gesendet: {len(meals)} Gerichte fuer {today.strftime('%d.%m.%Y')}")
 
 
 def get_timetable():
@@ -1018,8 +1018,8 @@ def create_change_embeds(added, removed, day_name):
 
     if added or removed:
         header_embed = discord.Embed(
-            title="Stundenplanänderung erkannt!",
-            description=f"Ã„nderungen für **{day_name}**",
+            title="Stundenplanaenderung erkannt!",
+            description=f"Ã„nderungen fuer **{day_name}**",
             color=15158332  # Red color for alerts
         )
         embeds.append(header_embed)
@@ -1086,8 +1086,8 @@ async def send_timetable():
     date_str = tomorrow.strftime("%A, %d. %B %Y")
     
     if not events:
-        await channel.send(f"{role_mention} Keine Veranstaltungen für morgen ({tomorrow.strftime('%d.%m.%Y')}).")
-        await log_action(f"Stundenplan: Keine Veranstaltungen für morgen ({tomorrow.strftime('%d.%m.%Y')})")
+        await channel.send(f"{role_mention} Keine Veranstaltungen fuer morgen ({tomorrow.strftime('%d.%m.%Y')}).")
+        await log_action(f"Stundenplan: Keine Veranstaltungen fuer morgen ({tomorrow.strftime('%d.%m.%Y')})")
         return
 
     embeds = create_modern_embeds(events, date_str)
@@ -1104,7 +1104,7 @@ async def send_timetable():
             else:
                 await channel.send(embeds=chunk)
     
-    await log_action(f"Stundenplan gesendet: {len(events)} Veranstaltungen für {tomorrow.strftime('%d.%m.%Y')}")
+    await log_action(f"Stundenplan gesendet: {len(events)} Veranstaltungen fuer {tomorrow.strftime('%d.%m.%Y')}")
 
 
 async def send_weekly_schedule():
@@ -1127,7 +1127,7 @@ async def send_weekly_schedule():
     all_events = await asyncio.to_thread(get_timetable)
     
     role_mention = f"<@&{ROLE_ID}>"
-    await channel.send(f"{role_mention} **Stundenplan für die kommende Woche**")
+    await channel.send(f"{role_mention} **Stundenplan fuer die kommende Woche**")
     
     total_events = 0
     for i in range(7):
@@ -1172,7 +1172,7 @@ async def check_timetable_changes():
     channel = client.get_channel(CHANNEL_ID)
     if not channel:
         print("Channel not found for change detection")
-        await log_action("ERROR: Stundenplan-Ã„nderungsprüfung: Channel nicht gefunden")
+        await log_action("ERROR: Stundenplan-Ã„nderungspruefung: Channel nicht gefunden")
         return
 
     all_events = await asyncio.to_thread(get_timetable)
@@ -1209,7 +1209,7 @@ async def check_timetable_changes():
                     else:
                         await channel.send(embeds=chunk)
 
-            await log_action(f"Stundenplanänderung HEUTE: +{len(added_today)} neu, -{len(removed_today)} entfernt")
+            await log_action(f"Stundenplanaenderung HEUTE: +{len(added_today)} neu, -{len(removed_today)} entfernt")
 
     # Check for changes in tomorrow's schedule
     if previous_timetable["tomorrow"]:
@@ -1229,7 +1229,7 @@ async def check_timetable_changes():
                     else:
                         await channel.send(embeds=chunk)
 
-            await log_action(f"Stundenplanänderung MORGEN: +{len(added_tomorrow)} neu, -{len(removed_tomorrow)} entfernt")
+            await log_action(f"Stundenplanaenderung MORGEN: +{len(added_tomorrow)} neu, -{len(removed_tomorrow)} entfernt")
 
     # Update previous timetable
     previous_timetable["today"] = today_events
@@ -1394,10 +1394,10 @@ async def on_raw_reaction_add(payload):
     try:
         await member.add_roles(role, reason="Reaction role add")
         print(f"Added role {role.name} to {member.display_name}")
-        await log_action(f"Rolle '{role.name}' zu {member} hinzugefügt (Reaction Role)")
+        await log_action(f"Rolle '{role.name}' zu {member} hinzugefuegt (Reaction Role)")
     except Exception as e:
         print(f"Error adding role: {e}")
-        await log_action(f"ERROR: Fehler beim Hinzufügen der Rolle '{role.name}': {e}")
+        await log_action(f"ERROR: Fehler beim Hinzufuegen der Rolle '{role.name}': {e}")
 
 
 @client.event
@@ -1445,7 +1445,7 @@ async def on_raw_reaction_remove(payload):
 
 
 # ---------------- Slash Commands ---------------- #
-@tree.command(name="truth", description="Erzeuge eine Wahrheitstabelle für einen Booleschen Ausdruck")
+@tree.command(name="truth", description="Erzeuge eine Wahrheitstabelle fuer einen Booleschen Ausdruck")
 @app_commands.describe(ausdruck="Boolescher Ausdruck (z.B. A and !B or C)")
 async def truth_command(interaction: discord.Interaction, ausdruck: str):
 
@@ -1468,17 +1468,17 @@ async def truth_command(interaction: discord.Interaction, ausdruck: str):
 
     await interaction.followup.send(embed=embed, file=file)
 
-@tree.command(name="setup_reaction_role", description="Richte Reaction Roles für eine Nachricht ein")
+@tree.command(name="setup_reaction_role", description="Richte Reaction Roles fuer eine Nachricht ein")
 @app_commands.describe(
     message_id="Die ID der Nachricht",
-    emoji="Das Emoji für die Reaktion (Unicode oder <:name:id>)",
+    emoji="Das Emoji fuer die Reaktion (Unicode oder <:name:id>)",
     role="Die Rolle, die vergeben werden soll"
 )
 async def setup_reaction_role(interaction: discord.Interaction, message_id: str, emoji: str, role: discord.Role):
     """Set up a reaction role on a message."""
     # Check if user has administrator permissions
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("ERROR: Du benÃ¶tigst Administrator-Rechte für diesen Befehl.", ephemeral=True)
+        await interaction.response.send_message("ERROR: Du benÃ¶tigst Administrator-Rechte fuer diesen Befehl.", ephemeral=True)
         return
 
     # Defer immediately to stop "Unknown interaction" errors
@@ -1486,7 +1486,7 @@ async def setup_reaction_role(interaction: discord.Interaction, message_id: str,
     try:
         msg_id = int(message_id)
     except ValueError:
-        await interaction.followup.send("ERROR: Ungültige Nachrichten-ID.", ephemeral=True)
+        await interaction.followup.send("ERROR: Ungueltige Nachrichten-ID.", ephemeral=True)
         return
 
     # Try to find the message
@@ -1512,7 +1512,7 @@ async def setup_reaction_role(interaction: discord.Interaction, message_id: str,
     # Parse emoji
     emoji_key, add_reaction_info = parse_emoji_input(emoji)
     if not emoji_key:
-        await interaction.followup.send("ERROR: Ungültiges Emoji.", ephemeral=True)
+        await interaction.followup.send("ERROR: Ungueltiges Emoji.", ephemeral=True)
         return
 
     # Save reaction role entry
@@ -1533,8 +1533,8 @@ async def setup_reaction_role(interaction: discord.Interaction, message_id: str,
         )
     else:
         await interaction.followup.send(
-            f"Reaction Role gespeichert, aber konnte das Emoji nicht automatisch hinzufügen.\n"
-            f"Bitte füge das Emoji manuell zur Nachricht hinzu.\n\n"
+            f"Reaction Role gespeichert, aber konnte das Emoji nicht automatisch hinzufuegen.\n"
+            f"Bitte fuege das Emoji manuell zur Nachricht hinzu.\n\n"
             f"Nachricht: `{msg_id}`\n"
             f"Emoji: {emoji}\n"
             f"Rolle: {role.mention}",
@@ -1551,14 +1551,14 @@ async def setup_reaction_role(interaction: discord.Interaction, message_id: str,
                 f"Nachricht: {msg_id}\n"
                 f"Emoji: {emoji}\n"
                 f"Rolle: {role.mention}\n\n"
-                f"Hinweis: Konnte das Emoji nicht automatisch zur Nachricht hinzufügen. Bitte füge es manuell hinzu.",
+                f"Hinweis: Konnte das Emoji nicht automatisch zur Nachricht hinzufuegen. Bitte fuege es manuell hinzu.",
                 ephemeral=True
             )
-            await log_action(f"Reaction Role eingerichtet für Nachricht {msg_id}, Emoji {emoji}, Rolle '{role.name}' (Emoji nicht automatisiert hinzugefügt)")
+            await log_action(f"Reaction Role eingerichtet fuer Nachricht {msg_id}, Emoji {emoji}, Rolle '{role.name}' (Emoji nicht automatisiert hinzugefuegt)")
             return
     except Exception as e:
-        await interaction.response.send_message(f"Reaction Role eingerichtet, aber konnte Emoji nicht hinzufügen: {e}", ephemeral=True)
-        await log_action(f"Reaction Role eingerichtet für Nachricht {msg_id}, Emoji {emoji}, Rolle '{role.name}' (Fehler beim Hinzufügen des Emoji: {e})")
+        await interaction.response.send_message(f"Reaction Role eingerichtet, aber konnte Emoji nicht hinzufuegen: {e}", ephemeral=True)
+        await log_action(f"Reaction Role eingerichtet fuer Nachricht {msg_id}, Emoji {emoji}, Rolle '{role.name}' (Fehler beim Hinzufuegen des Emoji: {e})")
         return
 
     await interaction.response.send_message(
@@ -1579,22 +1579,22 @@ async def setup_reaction_role(interaction: discord.Interaction, message_id: str,
 async def remove_reaction_role(interaction: discord.Interaction, message_id: str, emoji: str):
     """Remove a reaction role from a message."""
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("ERROR: Du benÃ¶tigst Administrator-Rechte für diesen Befehl.", ephemeral=True)
+        await interaction.response.send_message("ERROR: Du benÃ¶tigst Administrator-Rechte fuer diesen Befehl.", ephemeral=True)
         return
 
     try:
         msg_id = int(message_id)
     except ValueError:
-        await interaction.response.send_message("ERROR: Ungültige Nachrichten-ID.", ephemeral=True)
+        await interaction.response.send_message("ERROR: Ungueltige Nachrichten-ID.", ephemeral=True)
         return
 
     emoji_key, _ = parse_emoji_input(emoji)
     if not emoji_key:
-        await interaction.response.send_message("ERROR: Ungültiges Emoji.", ephemeral=True)
+        await interaction.response.send_message("ERROR: Ungueltiges Emoji.", ephemeral=True)
         return
 
     if msg_id not in reaction_roles or emoji_key not in reaction_roles[msg_id]["mappings"]:
-        await interaction.response.send_message("ERROR: Kein Reaction Role für diese Kombination gefunden.", ephemeral=True)
+        await interaction.response.send_message("ERROR: Kein Reaction Role fuer diese Kombination gefunden.", ephemeral=True)
         return
 
     # Remove mapping
@@ -1648,7 +1648,7 @@ async def list_reaction_roles(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@tree.command(name="create_reaction_role_message", description="Erstelle eine neue Nachricht für Reaction Roles")
+@tree.command(name="create_reaction_role_message", description="Erstelle eine neue Nachricht fuer Reaction Roles")
 @app_commands.describe(
     title="Titel der Nachricht",
     description="Beschreibung der Nachricht"
@@ -1657,7 +1657,7 @@ async def create_reaction_role_message(interaction: discord.Interaction, title: 
     """Create a new message for reaction roles."""
     # Check if user has administrator permissions
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("ERROR: Du benÃ¶tigst Administrator-Rechte für diesen Befehl.", ephemeral=True)
+        await interaction.response.send_message("ERROR: Du benÃ¶tigst Administrator-Rechte fuer diesen Befehl.", ephemeral=True)
         return
 
     embed = discord.Embed(
@@ -1672,13 +1672,13 @@ async def create_reaction_role_message(interaction: discord.Interaction, title: 
     await interaction.response.send_message(
         f"Nachricht erstellt!\n"
         f"Nachrichten-ID: `{message.id}`\n\n"
-        f"Nutze `/setup_reaction_role` um Reaction Roles hinzuzufügen.",
+        f"Nutze `/setup_reaction_role` um Reaction Roles hinzuzufuegen.",
         ephemeral=True
     )
     await log_action(f"Reaction Role Nachricht erstellt: ID {message.id}, Titel '{title}'")
 
 
-@tree.command(name="stundenplan_tag", description="Zeige den Stundenplan für einen bestimmten Tag")
+@tree.command(name="stundenplan_tag", description="Zeige den Stundenplan fuer einen bestimmten Tag")
 @app_commands.describe(tag="Tag des Monats (1-31)", monat="Monat (1-12)")
 async def stundenplan_tag(interaction: discord.Interaction, tag: int, monat: int):
     await interaction.response.defer()
@@ -1687,8 +1687,8 @@ async def stundenplan_tag(interaction: discord.Interaction, tag: int, monat: int
     try:
         day = datetime(year, monat, tag)
     except ValueError:
-        await interaction.followup.send("Ungültiges Datum.", ephemeral=True)
-        await log_action(f"ERROR: /stundenplan_tag Befehl fehlgeschlagen: Ungültiges Datum ({tag}.{monat})")
+        await interaction.followup.send("Ungueltiges Datum.", ephemeral=True)
+        await log_action(f"ERROR: /stundenplan_tag Befehl fehlgeschlagen: Ungueltiges Datum ({tag}.{monat})")
         return
 
     all_events = await asyncio.to_thread(get_timetable)
@@ -1698,8 +1698,8 @@ async def stundenplan_tag(interaction: discord.Interaction, tag: int, monat: int
     embeds = create_modern_embeds(events, date_str)
 
     if not embeds:
-        await interaction.followup.send(f"Keine Veranstaltungen für {day.strftime('%d.%m.%Y')}.")
-        await log_action(f" /stundenplan_tag: Keine Veranstaltungen für {day.strftime('%d.%m.%Y')}")
+        await interaction.followup.send(f"Keine Veranstaltungen fuer {day.strftime('%d.%m.%Y')}.")
+        await log_action(f" /stundenplan_tag: Keine Veranstaltungen fuer {day.strftime('%d.%m.%Y')}")
         return
 
     if len(embeds) <= 10:
@@ -1711,11 +1711,11 @@ async def stundenplan_tag(interaction: discord.Interaction, tag: int, monat: int
             chunk = embeds[i:i+10]
             await interaction.followup.send(embeds=chunk)
 
-    await log_action(f"/stundenplan_tag ausgeführt: {len(events)} Veranstaltungen für {day.strftime('%d.%m.%Y')}")
+    await log_action(f"/stundenplan_tag ausgefuehrt: {len(events)} Veranstaltungen fuer {day.strftime('%d.%m.%Y')}")
 
 
-@tree.command(name="stundenplan_woche", description="Zeige den Stundenplan für eine Woche")
-@app_commands.describe(erster_tag_der_woche="Erster Tag der gewünschten Woche (Montag)", monat="Monat des Montags")
+@tree.command(name="stundenplan_woche", description="Zeige den Stundenplan fuer eine Woche")
+@app_commands.describe(erster_tag_der_woche="Erster Tag der gewuenschten Woche (Montag)", monat="Monat des Montags")
 async def timetable_week(interaction: discord.Interaction, erster_tag_der_woche: int, monat: int):
     # 1. Acknowledge the interaction immediately. This is your ONLY use of interaction.response.
     await interaction.response.defer()
@@ -1725,13 +1725,13 @@ async def timetable_week(interaction: discord.Interaction, erster_tag_der_woche:
         monday = datetime(year, monat, erster_tag_der_woche)
     except ValueError:
 
-        await interaction.followup.send("Ungültiges Datum.", ephemeral=True)
-        await log_action(f"ERROR: /timetable_week Befehl fehlgeschlagen: Ungültiges Datum ({erster_tag_der_woche}.{monat})")
+        await interaction.followup.send("Ungueltiges Datum.", ephemeral=True)
+        await log_action(f"ERROR: /timetable_week Befehl fehlgeschlagen: Ungueltiges Datum ({erster_tag_der_woche}.{monat})")
         return
 
     all_events = await asyncio.to_thread(get_timetable)
 
-    await interaction.followup.send("**Stundenplan für die Woche**")
+    await interaction.followup.send("**Stundenplan fuer die Woche**")
 
     total_events = 0
     for i in range(7):
@@ -1748,9 +1748,9 @@ async def timetable_week(interaction: discord.Interaction, erster_tag_der_woche:
                 # 4. All other messages must also be followups.
                 await interaction.followup.send(embeds=chunk)
 
-    await log_action(f"/timetable_week ausgeführt: {total_events} Veranstaltungen ab {monday.strftime('%d.%m.%Y')}")
+    await log_action(f"/timetable_week ausgefuehrt: {total_events} Veranstaltungen ab {monday.strftime('%d.%m.%Y')}")
 
-@tree.command(name="speiseplan_tag", description="Zeige das Mensa-Angebot für einen bestimmten Tag")
+@tree.command(name="speiseplan_tag", description="Zeige das Mensa-Angebot fuer einen bestimmten Tag")
 @app_commands.describe(tag="Tag des Monats (1-31)", monat="Monat (1-12)")
 async def canteen_day(interaction: discord.Interaction, tag: int, monat: int):
     # Defer immediately to prevent timeout
@@ -1764,8 +1764,8 @@ async def canteen_day(interaction: discord.Interaction, tag: int, monat: int):
     try:
         day = datetime(year, monat, tag).date()
     except ValueError:
-        await interaction.followup.send("Ungültiges Datum.")
-        await log_action(f"ERROR: /canteen_day Befehl fehlgeschlagen: Ungültiges Datum ({tag}.{monat})")
+        await interaction.followup.send("Ungueltiges Datum.")
+        await log_action(f"ERROR: /canteen_day Befehl fehlgeschlagen: Ungueltiges Datum ({tag}.{monat})")
         return
 
     # Fetch meals in thread
@@ -1776,8 +1776,8 @@ async def canteen_day(interaction: discord.Interaction, tag: int, monat: int):
     embeds = create_canteen_embeds(meals, date_str)
 
     if not embeds:
-        await interaction.followup.send(f"Keine Mensa-Gerichte für {day.strftime('%d.%m.%Y')}.")
-        await log_action(f"â„¹ /canteen_day: Keine Gerichte für {day.strftime('%d.%m.%Y')}")
+        await interaction.followup.send(f"Keine Mensa-Gerichte fuer {day.strftime('%d.%m.%Y')}.")
+        await log_action(f"â„¹ /canteen_day: Keine Gerichte fuer {day.strftime('%d.%m.%Y')}")
         return
 
     if len(embeds) <= 10:
@@ -1788,7 +1788,7 @@ async def canteen_day(interaction: discord.Interaction, tag: int, monat: int):
             chunk = embeds[i:i+10]
             await interaction.followup.send(embeds=chunk)
 
-    await log_action(f"/canteen_day ausgeführt: {len(meals)} Gerichte für {day.strftime('%d.%m.%Y')}")
+    await log_action(f"/canteen_day ausgefuehrt: {len(meals)} Gerichte fuer {day.strftime('%d.%m.%Y')}")
 
 
 # ---------------- Startup & Scheduler ---------------- #
@@ -1815,7 +1815,7 @@ async def on_ready():
     previous_timetable["today"] = filter_timetable_for_today(all_events)
     previous_timetable["tomorrow"] = filter_timetable_for_tomorrow(all_events)
     print("Initial timetable loaded for change detection")
-    await log_action("Initialer Stundenplan geladen für ünderungserkennung")
+    await log_action("Initialer Stundenplan geladen fuer uenderungserkennung")
 
     # Schedule daily message for Timetable of Tommorrow at 20:00 UTC +1 time
     scheduler.add_job(
