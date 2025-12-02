@@ -537,8 +537,8 @@ def clean_old_dates(cache):
     for key, value in cache.items():
         try:
             date_str = key.split("::")[0]
-            entry_date = datetime.date.fromisoformat(date_str)
-            
+            entry_date = datetime.fromisoformat(date_str).date()   # FIXED
+
             if start_of_current_week <= entry_date <= end_of_next_week:
                 new_cache[key] = value
                 kept_count += 1
@@ -546,6 +546,7 @@ def clean_old_dates(cache):
                 removed_count += 1
         except ValueError:
             continue
+
             
     if removed_count > 0:
         print(f"[Cache] Cleaned up: Kept {kept_count} entries, Removed {removed_count} old/far-future entries.")
@@ -700,9 +701,10 @@ def get_canteen_meals(date):
     url = f"https://api.studentenwerk-dresden.de/openmensa/v2/canteens/32/days/{date_str}/meals"
 
     # --- Date Checks ---
-    today = datetime.date.today()
+    today = datetime.today().date() 
     start_of_current_week = today - timedelta(days=today.weekday())
     end_of_next_week = start_of_current_week + timedelta(days=13)
+
     is_within_valid_range = start_of_current_week <= date <= end_of_next_week
 
     try:
@@ -1757,11 +1759,10 @@ async def canteen_day(interaction: discord.Interaction, tag: int, monat: int):
     except discord.errors.NotFound:
         print("Interaction expired BEFORE defer() — likely double bot instance or slow system.")
         return
-
-
+    
     year = datetime.now(tz).year
     try:
-        day = datetime.date(year, monat, tag)
+        day = datetime(year, monat, tag).date()
     except ValueError:
         await interaction.followup.send("Ungültiges Datum.")
         await log_action(f"ERROR: /canteen_day Befehl fehlgeschlagen: Ungültiges Datum ({tag}.{monat})")
