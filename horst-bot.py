@@ -22,12 +22,12 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 MODEL_NAME = "gemini-2.0-flash"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 TOKEN = os.getenv("TOKEN") # <-- replace with your NEW token
-ROLE_ID = os.getenv("ROLE_ID")  # Role to mention
-CHANNEL_ID = os.getenv("CHANNEL_ID")  # Channel to send messages
-ESSEN_CHANNEL_ID = os.getenv("ESSEN_CHANNEL_ID")  # Channel for canteen menu
-CHANGES_ROLE_ID = os.getenv("CHANGES_ROLE_ID")  # Role to ping for changes
-CANTEEN_ROLE_ID = os.getenv("CANTEEN_ROLE_ID")  # Role to ping for canteen menu
-LOG_CHANNEL_ID = 1439985824530829415
+ROLE_ID=1439649825183371465
+CHANNEL_ID=1439649654055895080
+ESSEN_CHANNEL_ID=1439977286882295909
+CHANGES_ROLE_ID=1439649825183371465
+CANTEEN_ROLE_ID=1439988749944487957
+LOG_CHANNEL_ID=1439985824530829415
 
 USERID = os.getenv("USERID")  # <-- replace with your user ID for timetable API
 HASH = os.getenv("HASH")  # <-- replace with your hash for timetable API
@@ -1172,7 +1172,7 @@ async def check_timetable_changes():
     channel = client.get_channel(CHANNEL_ID)
     if not channel:
         print("Channel not found for change detection")
-        await log_action("ERROR: Stundenplan-Ã„nderungspruefung: Channel nicht gefunden")
+        await log_action("ERROR: Stundenplan-Aenderungspruefung: Channel nicht gefunden")
         return
 
     all_events = await asyncio.to_thread(get_timetable)
