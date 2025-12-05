@@ -18,10 +18,9 @@ load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ---- CONFIG ----
-# Replace these IDs with your actual Discord IDs
 MODEL_NAME = "gemini-2.0-flash"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-TOKEN = os.getenv("TOKEN") # <-- replace with your NEW token
+TOKEN = os.getenv("TOKEN")
 ROLE_ID=1439649825183371465
 CHANNEL_ID=1439649654055895080
 ESSEN_CHANNEL_ID=1439977286882295909
@@ -29,8 +28,8 @@ CHANGES_ROLE_ID=1439649825183371465
 CANTEEN_ROLE_ID=1439988749944487957
 LOG_CHANNEL_ID=1439985824530829415
 
-USERID = os.getenv("USERID")  # <-- replace with your user ID for timetable API
-HASH = os.getenv("HASH")  # <-- replace with your hash for timetable API
+USERID = os.getenv("USERID")
+HASH = os.getenv("HASH")
 
 PRAXISPHASEN_FILE = "praxisphasen.json"
 # ---- Intents & Client ----
