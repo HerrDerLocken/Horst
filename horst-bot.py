@@ -13,6 +13,7 @@ import os
 import google.generativeai as genai
 from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -20,6 +21,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ---- CONFIG ----
 MODEL_NAME = "gemini-2.0-flash"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENROUTER_API_KEY= os.getenv("OPENROUTER_API_KEY")
 TOKEN = os.getenv("TOKEN")
 ROLE_ID=1439649825183371465
 CHANNEL_ID=1439649654055895080
@@ -552,9 +554,6 @@ def clean_old_dates(cache):
     return new_cache
 
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel(MODEL_NAME)
-
 def parse_json_from_text(text: str):
     """
     Try to extract and parse the first JSON object from arbitrary text.
@@ -621,39 +620,53 @@ def parse_json_from_text(text: str):
     # nothing worked
     print("parse_json_from_text: failed to parse JSON. Original text was:\n", original)
     return None
-# -------------------------------
-# GEMINI QUERY
-# -------------------------------
-    
-    
-def ask_gemini_for_nutrition(dish_name: str):
-    print(f"  --> Asking Gemini about: '{dish_name}'...")
-    
-    # Stricter prompt
+
+openrouter_client = OpenAI(
+    api_key=OPENROUTER_API_KEY,
+    base_url="https://openrouter.ai/api/v1"
+)
+MODEL_NAME = "gpt-oss-20b"
+
+def ask_model_for_nutrition(dish_name: str):
+    print(f"  --> Asking OpenRouter about: '{dish_name}'...")
+
     prompt = f"""
-    Analyze the dish "{dish_name}" (German canteen food).
-    Estimate values for a standard portion (approx 350g).
-    Return a SINGLE JSON object with exactly these keys: "kcal", "Eiweiss", "Kohlenhydrate", "Fette".
-    Values should be numbers (int or float).
-    Example: {{"kcal": 500, "Eiweiss": 20, "Kohlenhydrate": 50, "Fette": 15}}
-    DO NOT output Markdown. DO NOT output explanations. ONLY JSON.
-    """
+Analyze the dish "{dish_name}" (German canteen food).
+Estimate values for a standard portion (approx 350g).
+Return a SINGLE JSON object with exactly these keys:
+"kcal", "Eiweiss", "Kohlenhydrate", "Fette".
+Values should be numbers (int or float).
+
+Example:
+{{"kcal": 500, "Eiweiss": 20, "Kohlenhydrate": 50, "Fette": 15}}
+
+DO NOT output Markdown.
+DO NOT output explanations.
+ONLY JSON.
+"""
 
     try:
-        response = model.generate_content(prompt)
-        text = response.candidates[0].content.parts[0].text.strip()
-        
-        # Use your robust parser function
+        response = openrouter_client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "You are a precise nutrition estimation assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,
+        )
+
+        text = response.choices[0].message.content.strip()
+
         data = parse_json_from_text(text)
-        
+
         if data:
             return data
         else:
-            print(f"  --> Gemini Error: Could not parse JSON. Raw text: {text[:50]}...")
+            print(f"  --> OpenRouter Error: Could not parse JSON. Raw text: {text[:50]}...")
             return None
 
     except Exception as e:
-        print(f"  --> Gemini Exception for '{dish_name}': {e}")
+        print(f"  --> OpenRouter Exception for '{dish_name}': {e}")
         return None
 
 
@@ -682,7 +695,7 @@ def get_nutrition_for_day(dish_name: str, date: datetime.date, cache: dict):
         return cache[cache_key]
 
     # 2. Ask Gemini
-    nutrition = ask_gemini_for_nutrition(clean_name)
+    nutrition = ask_model_for_nutrition(clean_name)
     
     if nutrition is None:
         print(f"  --> FAILED to get data for '{clean_name}'.")
@@ -1839,7 +1852,7 @@ async def on_ready():
     scheduler.add_job(
         check_timetable_changes,
         trigger="interval",
-        minutes=10,
+        minutes=20,
         timezone="Europe/Berlin"
     )
 
