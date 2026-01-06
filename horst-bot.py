@@ -14,6 +14,7 @@ import google.generativeai as genai
 from PIL import Image, ImageDraw, ImageFont
 from dotenv import load_dotenv
 from openai import OpenAI
+from building_graph import create_building
 
 load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -78,6 +79,7 @@ from datetime import datetime, timedelta
 # Add this near the top with other constants
 PRAXISPHASEN_FILE = "praxisphasen.json"
 
+building = create_building()
 def load_praxisphasen():
     """Load practical phases from JSON file."""
     if not os.path.exists(PRAXISPHASEN_FILE):
@@ -1367,7 +1369,6 @@ async def apply_reaction_to_message(message, add_reaction_info):
 
 
 # ---------------- Raw reaction handlers ---------------- #
-
 @client.event
 async def on_raw_reaction_add(payload):
     """Handle reaction add events for reaction roles."""
@@ -1457,6 +1458,33 @@ async def on_raw_reaction_remove(payload):
 
 
 # ---------------- Slash Commands ---------------- #
+@tree.command(name="weg", description="Berechnet den schnellsten Weg zwischen zwei Räumen")
+@app_commands.describe(
+    start="Start-Raum z.B. 3.005",
+    ende="Ziel-Raum z.B. 1.015"
+)
+
+async def weg(interaction: discord.Interaction, start: str, ende: str):
+    await interaction.response.defer()
+
+    distance, path = building.dijkstra(start, ende)
+
+    if not path:
+        await interaction.followup.send(
+            f" Kein Weg von **{start}** nach **{ende}** gefunden."
+        )
+        return
+
+    text = (
+        f"**Start:** `{start}`\n"
+        f"**Ziel:** `{ende}`\n\n"
+        f"**Weg:**\n"
+        f"`" + " → ".join(path) + "`\n\n"
+        f"**Distanz:** {distance}"
+    )
+
+    await interaction.followup.send(text)
+
 @tree.command(name="truth", description="Erzeuge eine Wahrheitstabelle fuer einen Booleschen Ausdruck")
 @app_commands.describe(ausdruck="Boolescher Ausdruck (z.B. A and !B or C)")
 async def truth_command(interaction: discord.Interaction, ausdruck: str):
