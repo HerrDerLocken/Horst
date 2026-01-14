@@ -44,17 +44,48 @@ def create_building():
     building.block_connection("3.104", "3.106")
     building.block_connection("3.2.04", "3.2.06")
 
-
     # Keller (K) –
+    #Haus 2
+    building.add_room_connection("3.K07", "3.K05")
+    building.add_room_connection("3.K05", "3.K06a")
+    building.add_room_connection("3.K06a", "3.K06b")
+    building.add_room_connection("3.K06a", "3.K06d")
+    building.add_room_connection("3.K06d", "3.K06c")
+    building.add_room_connection("3.K07", "2.K26")
+    building.add_room_connection("2.K26", "2.K25")
+    building.add_room_connection("2.K25", "Treppenhaus_2_Fahrstuhl")
+    building.add_room_connection("Treppenhaus_2_Fahrstuhl", "2.K19")
+    building.add_room_connection("2.K19", "2.K18")
+    building.add_room_connection("2.K19", "2.K20")
+    building.add_room_connection("2.K20", "2.K21")
+    building.add_room_connection("2.K21", "2.K22")
+    building.add_room_connection("2.K22", "2.K23")
+    building.add_room_connection("2.K23", "Treppenhaus_2_Foyer")
+    building.add_room_connection("2.K20","2.WC-Herren-K")
+    building.add_room_connection("2.WC-Herren-K","2.WC-Damen-K")
+    building.add_room_connection("2.K19","2.WC-Herren-K")
+    building.add_room_connection("2.K20","2.K15")
+    building.add_room_connection("2.K15","2.K14")
+    building.add_room_connection("2.K14","2.K13")
+    building.add_room_connection("2.K13","Treppenhaus_2_Foyer")
+    building.add_room_connection("2.K23","Treppenhaus_2_Foyer")
+    building.add_room_connection("Treppenhaus_2_Foyer","2.K12")
+    building.add_room_connection("Treppenhaus_2_Foyer","2.K04")
+    building.add_room_connection("2.K04","2.K03")
+
+    #Haus 3
 
     # Erdgeschoss (0)
         # Haus1
-    building.add_room_connection("Treppenhaus_1", "Bibliothek")
-    building.add_room_connection("Treppenhaus_1", "Mensa")
     building.add_room_connection("Treppenhaus_1", "1.001")
     building.add_room_connection("Treppenhaus_1", "1.202")
     building.add_room_connection("1.202", "1.201")
     building.add_room_connection("1.001", "1.002")
+    building.add_room_connection("Treppenhaus_1", "1.003")
+    building.add_room_connection("1.003", "1.099")
+    building.add_room_connection("1.000a", "Treppenhaus_1")
+    building.add_room_connection("Treppenhaus_1", "1.000b")
+    building.add_room_connection("1.000b", "1.000c")
 
 
         # Haus2
@@ -100,6 +131,16 @@ def create_building():
 
 
     # 1 OG
+    #Haus 1
+    building.add_room_connection("Treppenhaus_1", "Mensa")
+    building.add_room_connection("Treppenhaus_1", "1.100")
+    building.add_room_connection("1.100", "1.101")
+    building.add_room_connection("Treppenhaus_1", "1.WC-Damen-1OG")
+    building.add_room_connection("1.WC-Damen-1OG", "1.WC-Herren-1OG")
+    building.add_room_connection("1.WC-Herren-1OG", "1.WC-Behinderte-1OG")
+    building.add_room_connection("1.WC-Behinderte-1OG", "1.103a")
+    building.add_room_connection("1.103d", "1.103e")
+
     #Haus 2
     building.add_room_connection("3.105", "3.104")
     building.add_room_connection("3.104", "2.119")
@@ -147,6 +188,12 @@ def create_building():
 
 
     # 2. OG
+    #Haus 1
+    building.add_room_connection("Treppenhaus_1", "Bibliothek")
+    building.add_room_connection("Treppenhaus_1", "1.201")
+    building.add_room_connection("1.201", "1.202")
+
+    #Haus 2
     building.add_room_connection("3.204","3.104")
     building.add_room_connection("3.204","3.205")
     building.add_room_connection("2.234","Treppenhaus_2_Fahrstuhl")
@@ -206,10 +253,11 @@ def create_building():
     building.add_room_connection("3.218","3.220")
 
 
-    # Keller (K) –
+    # Keller (K)
 
     #Ausgänge
-    building.add_room_connection("Treppenhaus_2_Foyer", "Innenhof")
-    building.add_room_connection("Innenhof", "Treppenhaus_3")
+    building.add_room_connection("Treppenhaus_2_Foyer", "Innenhof", distance=45)
+    building.add_room_connection("Innenhof", "Treppenhaus_3", distance=40)
+    building.add_room_connection("Treppenhaus_1","Innenhof", distance=35)
 
     return building
