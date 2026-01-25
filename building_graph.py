@@ -256,8 +256,9 @@ def create_building():
     # Keller (K)
 
     #Ausgänge
-    building.add_room_connection("Treppenhaus_2_Foyer", "Innenhof", distance=45)
-    building.add_room_connection("Innenhof", "Treppenhaus_3", distance=40)
-    building.add_room_connection("Treppenhaus_1","Innenhof", distance=35)
+    building.add_room_connection("Treppenhaus_2_Foyer", "Innenhof")
+    building.add_room_connection("Innenhof", "Treppenhaus_3")
+    building.add_room_connection("Treppenhaus_1","Innenhof")
+    building.add_room_connection("Treppenhaus_2_Fahrstuhl","Innenhof")
 
     return building

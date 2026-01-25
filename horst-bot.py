@@ -858,14 +858,20 @@ def create_canteen_embeds(meals, date_str):
 
 async def send_canteen_menu():
     """Send today's canteen menu to Discord."""
-    tomorrow = datetime.now(tz) + timedelta(days=1)
-    tomorrow_date = tomorrow.date()
+    today = datetime.now(tz).date()
     
-    # Check if we should send (using tomorrow's date since we're posting for the next day)
-    should_send, reason = should_send_daily_message(tomorrow_date)
-    if not should_send:
-        print(f"Skipping canteen menu send: {reason}")
-        await log_action(f"Mensa-Menue nicht gesendet: {reason}")
+    # Check if today is weekend (Saturday = 5, Sunday = 6)
+    if today.weekday() in [5, 6]:
+        day_name = today.strftime("%A")
+        print(f"Skipping canteen menu send: {day_name} (mensa geschlossen)")
+        await log_action(f"Mensa-Menue nicht gesendet: {day_name} (Wochenende - mensa geschlossen)")
+        return
+    
+    # Check if today is in a practical phase (only skip if in praxisphase, not for weekends)
+    in_practical, phase_name = is_in_practical_phase(today)
+    if in_practical:
+        print(f"Skipping canteen menu send: Praxisphase ({phase_name})")
+        await log_action(f"Mensa-Menue nicht gesendet: Praxisphase ({phase_name})")
         return
     
     channel = client.get_channel(ESSEN_CHANNEL_ID)
@@ -875,7 +881,6 @@ async def send_canteen_menu():
         return
 
     role_mention = f"<@&{CANTEEN_ROLE_ID}>"
-    today = datetime.now(tz).date()
 
     # Fetch meals in thread to avoid blocking
     meals = await asyncio.to_thread(get_canteen_meals, today)
@@ -1461,7 +1466,7 @@ async def on_raw_reaction_remove(payload):
 @tree.command(name="weg", description="Berechnet den schnellsten Weg zwischen zwei Räumen")
 @app_commands.describe(
     start="Start-Raum z.B. 3.005",
-    ende="Ziel-Raum z.B. 1.015"
+    ende="Ziel-Raum z.B. 1.202"
 )
 
 async def weg(interaction: discord.Interaction, start: str, ende: str):
@@ -1745,7 +1750,7 @@ async def stundenplan_tag(interaction: discord.Interaction, tag: int, monat: int
     if len(embeds) <= 10:
         await interaction.followup.send(embeds=embeds)
     else:
-        await interaction.followup(embeds=embeds[:10])
+        await interaction.followup.send(embeds=embeds[:10])
         # Send remaining embeds as follow-up because of 10 Embed limit
         for i in range(10, len(embeds), 10):
             chunk = embeds[i:i+10]
@@ -1884,7 +1889,7 @@ async def on_ready():
         timezone="Europe/Berlin"
     )
 
-    # Schedule daily canteen message at 10:30 UTC +1 time
+    # Schedule daily canteen message at 11:00 UTC +1 time
     scheduler.add_job(
         send_canteen_menu,
         trigger="cron",
