@@ -6,15 +6,17 @@ import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import urllib3
 import os
+from dotenv import load_dotenv
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+TOKEN = os.getenv("TOKEN")
 TOKEN = os.getenv("TOKEN")
 ROLE_ID = 1439649825183371465  # Role to mention
 CHANNEL_ID = 1439931429029941299# Channel to send messages
 
 USERID = os.getenv("USERID")
-HASH = os.getenv("HASH")
+HASH   = os.getenv("HASH")
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
