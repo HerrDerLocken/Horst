@@ -1,0 +1,91 @@
+{
+  "date": "2026-05-20",
+  "today": [
+    {
+      "title": "OOE",
+      "start": 1779255900,
+      "end": 1779261300,
+      "allDay": false,
+      "description": "OOE",
+      "color": "0070a3",
+      "editable": false,
+      "room": "3.015",
+      "sroom": "3.015",
+      "instructor": "Lars GroÃmann",
+      "sinstructor": "Lars GroÃmann",
+      "remarks": ""
+    },
+    {
+      "title": "OOE",
+      "start": 1779263100,
+      "end": 1779268500,
+      "allDay": false,
+      "description": "OOE",
+      "color": "0070a3",
+      "editable": false,
+      "room": "3.015",
+      "sroom": "3.015",
+      "instructor": "Lars GroÃmann",
+      "sinstructor": "Lars GroÃmann",
+      "remarks": ""
+    },
+    {
+      "title": "DTDS",
+      "start": 1779270300,
+      "end": 1779275700,
+      "allDay": false,
+      "description": "DTDS",
+      "color": "0070a3",
+      "editable": false,
+      "room": "1.202",
+      "sroom": "1.202",
+      "instructor": "Robert PÃ¼stow",
+      "sinstructor": "Robert PÃ¼stow",
+      "remarks": ""
+    },
+    {
+      "title": "DTDS",
+      "start": 1779277500,
+      "end": 1779282900,
+      "allDay": false,
+      "description": "DTDS",
+      "color": "0070a3",
+      "editable": false,
+      "room": "1.202",
+      "sroom": "1.202",
+      "instructor": "Robert PÃ¼stow",
+      "sinstructor": "Robert PÃ¼stow",
+      "remarks": ""
+    }
+  ],
+  "tomorrow": [
+    {
+      "title": "DTDS",
+      "start": 1779342300,
+      "end": 1779347700,
+      "allDay": false,
+      "description": "DTDS",
+      "color": "0070a3",
+      "editable": false,
+      "room": "1.202",
+      "sroom": "1.202",
+      "instructor": "Robert PÃ¼stow",
+      "sinstructor": "Robert PÃ¼stow",
+      "remarks": ""
+    },
+    {
+      "title": "DTDS",
+      "start": 1779349500,
+      "end": 1779354900,
+      "allDay": false,
+      "description": "DTDS",
+      "color": "0070a3",
+      "editable": false,
+      "room": "1.202",
+      "sroom": "1.202",
+      "instructor": "Robert PÃ¼stow",
+      "sinstructor": "Robert PÃ¼stow",
+      "remarks": ""
+    }
+  ]
+}
