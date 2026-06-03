@@ -1093,7 +1093,7 @@ async def on_ready():
         save_timetable_state(previous_timetable, tz, TIMETABLE_STATE_FILE)
         print("Initial timetable loaded from API")
         await log_action("Initialer Stundenplan von API geladen und gespeichert")
-        
+
     if not scheduler.running:
         scheduler.add_job(send_timetable,          "cron",     hour=20, minute=0,  timezone="Europe/Berlin")
         scheduler.add_job(send_weekly_schedule,    "cron",     day_of_week="sun", hour=19, minute=45, timezone="Europe/Berlin")

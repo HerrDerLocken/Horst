@@ -1,3 +1,12 @@
+#Exclude Files:
+timetable-export.py
+.idea
+.venv
+truth_table.png
+timetable_state.json
+reaction_roles.json
+praxisphasen.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -31,6 +40,7 @@ MANIFEST
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+
 
 # Installer logs
 pip-log.txt
