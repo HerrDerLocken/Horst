@@ -9,6 +9,8 @@ import os
 from datetime import datetime, timedelta
 import pytz
 import itertools
+from html.parser import HTMLParser
+from html import unescape
 
 TZ = pytz.timezone("Europe/Berlin")
 
@@ -54,6 +56,202 @@ def compare_timetables(old_events: list, new_events: list) -> tuple[list, list]:
     added   = [json.loads(s) for s in (new_set - old_set)]
     removed = [json.loads(s) for s in (old_set - new_set)]
     return added, removed
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Stundenplan-HTML-Parser (BA Dresden – PlanServlet)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Die neue Quelle liefert pro Abruf mehrere Wochen als HTML-Tabellen
+# (<table class="Plan">). Jede Tabelle hat:
+#   • <caption> mit "… vom D.M.YYYY-…"  → Montagsdatum der Woche
+#   • eine Kopfzeile mit den Wochentagen (Mo–Fr)
+#   • Zeitraster-Zeilen: <th class="zeit">…<span class="vonbis">07:45-09:15</span>
+#     gefolgt von 5 <td>-Tageszellen.
+# Eine Veranstaltungszelle kann mehrere Stunden überspannen (rowspan) und
+# mehrere Einträge (z. B. Gruppen A/B) enthalten, getrennt durch <br>.
+#
+# Der Parser erzeugt Events im SELBEN Format wie die alte Campus-Dual-API:
+#   {"title", "start" (unix), "end" (unix), "sroom", "instructor", "bemerkung", "typ"}
+# Dadurch funktioniert der gesamte nachgelagerte Code unverändert weiter.
+
+# Feste Zeitraster der BA Dresden – Fallback, falls eine Zeit nicht parsbar ist.
+DEFAULT_TIME_SLOTS = [
+    ("07:45", "09:15"),
+    ("09:45", "11:15"),
+    ("11:45", "13:15"),
+    ("13:45", "15:15"),
+    ("15:30", "17:00"),
+    ("17:15", "18:45"),
+    ("19:00", "20:15"),
+]
+
+_CAPTION_DATE_RE = re.compile(r"vom\s+(\d{1,2})\.(\d{1,2})\.(\d{4})")
+_VONBIS_RE       = re.compile(r"(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})")
+_SPAN_KEYS       = ("fach", "dozent", "ort", "bemerkung", "typ")
+
+
+class _PlanHTMLParser(HTMLParser):
+    """Zerlegt das Wochen-Tabellen-HTML des BA-Dresden-PlanServlets."""
+
+    def __init__(self):
+        super().__init__()
+        self.weeks = []          # [{"monday": (d,m,y), "slots": [(s,e)], "cells": [...]}]
+        self._wk = None
+        self._in_caption = False
+        self._caption_buf = ""
+        self._in_zeit = False
+        self._zeit_buf = ""
+        self._row_idx = -1
+        self._occupied = {}      # spalte -> verbleibende, von rowspan belegte Reihen
+        self._blocked = set()
+        self._col_cursor = 0
+        # aktuelle <td>-Zelle
+        self._in_td = False
+        self._td_rowspan = 1
+        self._td_col = None
+        self._span_class = None
+        self._entries = None
+        self._entry = None
+
+    @staticmethod
+    def _new_entry():
+        return {"fach": "", "dozent": "", "ort": "", "bemerkung": "", "typ": ""}
+
+    def handle_starttag(self, tag, attrs):
+        a   = dict(attrs)
+        cls = a.get("class", "").split()
+
+        if tag == "table" and "Plan" in cls:
+            self._finish_week()
+            self._wk = {"monday": None, "slots": [], "cells": []}
+            self._row_idx = -1
+            self._occupied = {}
+        elif tag == "caption":
+            self._in_caption = True
+            self._caption_buf = ""
+        elif tag == "th" and "zeit" in cls:
+            # Neue Zeitraster-Zeile → Belegung eine Reihe weiterzählen
+            self._row_idx += 1
+            self._occupied = {c: n - 1 for c, n in self._occupied.items() if n - 1 > 0}
+            self._blocked = set(self._occupied)
+            self._col_cursor = 0
+            self._in_zeit = True
+            self._zeit_buf = ""
+        elif tag == "td" and self._wk is not None and self._row_idx >= 0:
+            while self._col_cursor in self._blocked:
+                self._col_cursor += 1
+            self._td_col = self._col_cursor
+            try:
+                self._td_rowspan = int(a.get("rowspan", "1"))
+            except ValueError:
+                self._td_rowspan = 1
+            self._in_td = True
+            self._entries = []
+            self._entry = self._new_entry()
+            self._span_class = None
+        elif tag == "span" and self._in_td:
+            for key in _SPAN_KEYS:
+                if key in cls:
+                    self._span_class = key
+                    break
+        elif tag == "br" and self._in_td:
+            self._push_entry()
+
+    def handle_endtag(self, tag):
+        if tag == "caption":
+            self._in_caption = False
+            m = _CAPTION_DATE_RE.search(self._caption_buf)
+            if m and self._wk is not None:
+                self._wk["monday"] = tuple(int(x) for x in m.groups())
+        elif tag == "th" and self._in_zeit:
+            self._in_zeit = False
+            m = _VONBIS_RE.search(self._zeit_buf)
+            if self._wk is not None:
+                if m:
+                    self._wk["slots"].append((m.group(1), m.group(2)))
+                elif self._row_idx < len(DEFAULT_TIME_SLOTS):
+                    self._wk["slots"].append(DEFAULT_TIME_SLOTS[self._row_idx])
+                else:
+                    self._wk["slots"].append(("00:00", "00:00"))
+        elif tag == "span" and self._in_td:
+            self._span_class = None
+        elif tag == "td" and self._in_td:
+            self._push_entry()
+            if self._td_rowspan > 1:                 # Spalte für Folgereihen sperren
+                self._occupied[self._td_col] = self._td_rowspan
+            real = [e for e in self._entries if e["fach"]]
+            if real:
+                self._wk["cells"].append({
+                    "col": self._td_col, "row": self._row_idx,
+                    "rowspan": self._td_rowspan, "entries": real,
+                })
+            self._col_cursor = self._td_col + 1
+            self._in_td = False
+            self._entries = self._entry = None
+        elif tag == "table":
+            self._finish_week()
+
+    def handle_data(self, data):
+        if self._in_caption:
+            self._caption_buf += data
+        elif self._in_zeit:
+            self._zeit_buf += data
+        elif self._in_td and self._span_class:
+            self._entry[self._span_class] += data
+
+    def _push_entry(self):
+        if self._entry is not None:
+            entry = {k: unescape(v).strip() for k, v in self._entry.items()}
+            self._entries.append(entry)
+            self._entry = self._new_entry()
+            self._span_class = None
+
+    def _finish_week(self):
+        if self._wk is not None:
+            self.weeks.append(self._wk)
+            self._wk = None
+
+
+def parse_timetable_html(html_text: str, tz=TZ) -> list:
+    """Parst das PlanServlet-HTML in eine Event-Liste (Format wie alte API)."""
+    parser = _PlanHTMLParser()
+    parser.feed(html_text)
+    parser.close()
+    parser._finish_week()
+
+    events = []
+    for wk in parser.weeks:
+        if not wk["monday"] or not wk["slots"]:
+            continue
+        d, mo, y = wk["monday"]
+        try:
+            monday = datetime(y, mo, d)
+        except ValueError:
+            continue
+        slots = wk["slots"]
+        for cell in wk["cells"]:
+            s_idx = cell["row"]
+            if s_idx >= len(slots):
+                continue
+            e_idx = min(s_idx + cell["rowspan"] - 1, len(slots) - 1)
+            day   = monday + timedelta(days=cell["col"])
+            sh, sm = (int(x) for x in slots[s_idx][0].split(":"))
+            eh, em = (int(x) for x in slots[e_idx][1].split(":"))
+            start_ts = int(tz.localize(day.replace(hour=sh, minute=sm)).timestamp())
+            end_ts   = int(tz.localize(day.replace(hour=eh, minute=em)).timestamp())
+            for ent in cell["entries"]:
+                events.append({
+                    "title":      ent["fach"],
+                    "start":      start_ts,
+                    "end":        end_ts,
+                    "sroom":      ent["ort"],
+                    "instructor": ent["dozent"],
+                    "bemerkung":  ent["bemerkung"],
+                    "typ":        ent["typ"],
+                })
+    events.sort(key=lambda e: e["start"])
+    return events
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

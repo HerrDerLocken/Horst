@@ -16,7 +16,7 @@ from building_graph import create_building
 
 # ── Reine Logik aus bot_logic.py importieren ─────────────────────────────────
 from bot_logic import (
-    normalize_event, compare_timetables,
+    normalize_event, compare_timetables, parse_timetable_html,
     filter_timetable_for_day, filter_timetable_for_today, filter_timetable_for_tomorrow,
     get_course_color, clean_dish_name, parse_json_from_text,
     load_praxisphasen, is_in_practical_phase,
@@ -42,8 +42,9 @@ LOG_CHANNEL_ID      = 1439985824530829415
 TEST_CHANNEL_ID     = 1439931429029941299   # Dedizierter Test-Channel
 ADMIN_ROLE_ID       = 1439649601765511383   # Admin-Rolle für Test-Commands
 
-USERID = os.getenv("USERID")
-HASH   = os.getenv("HASH")
+# ── Stundenplan-Quelle (BA Dresden – PlanServlet, keine Zugangsdaten nötig) ────
+TIMETABLE_URL     = "https://stundenplan.ba-dresden.de/stundenplan/PlanServlet"
+SEMINAR_GROUP     = "3it25-1"   # Seminargruppe (AktWert)
 
 PRAXISPHASEN_FILE   = "praxisphasen.json"
 TIMETABLE_STATE_FILE = "timetable_state.json"
@@ -192,26 +193,42 @@ def get_canteen_meals(date):
 
 def get_timetable():
     """
-    FIX: start_ts beginnt am Anfang des heutigen Tages (nicht bei 'now'),
-    damit bereits gestartete Events weiterhin zurückgeliefert werden.
-    Der bisherige Bug: start_ts=now → API ließ laufende Kurse weg → False Positive.
+    Ruft den Stundenplan vom BA-Dresden-PlanServlet ab und parst das HTML
+    in das bekannte Event-Format ({title, start, end, sroom, instructor, …}).
+
+    Der Servlet liefert ab dem übergebenen Datum mehrere Wochen im Voraus –
+    es werden keine persönlichen Zugangsdaten mehr benötigt. Als Startdatum
+    wird der heutige Tag verwendet, damit bereits laufende Veranstaltungen
+    (und der gesamte restliche Tag) enthalten bleiben.
     """
-    url  = "https://selfservice.campus-dual.de/room/json"
-    now  = datetime.datetime.now(tz)
-    # Beginn des heutigen Tages (00:00 Uhr)
-    day_start  = tz.localize(datetime.datetime(now.year, now.month, now.day, 0, 0, 0))
-    start_ts   = int(day_start.timestamp())
-    end_ts     = int((now + datetime.timedelta(days=7)).timestamp())
-    params = {"userid": USERID, "hash": HASH, "start": start_ts, "end": end_ts}
-    r = requests.get(url, params=params, verify=False)
-    return r.json() if r.status_code == 200 else []
+    now    = datetime.datetime.now(tz)
+    datum  = f"{now.day}.{now.month}.{now.year}"   # Format: d.m.yyyy (ohne führende Nullen)
+    params = {"AktTyp": 1, "LegendeFach": "", "Datum": datum, "AktWert": SEMINAR_GROUP}
+    try:
+        r = requests.get(TIMETABLE_URL, params=params, timeout=20)
+    except Exception as e:
+        print(f"Error fetching timetable: {e}")
+        return []
+    if r.status_code != 200:
+        return []
+    r.encoding = "utf-8"
+    return parse_timetable_html(r.text, tz)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  Discord: Embed-Builder
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def create_modern_embeds(events, date_str, course_group="IT-25APP"):
+def _event_title(e) -> str:
+    """Titel inkl. Gruppen-Typ (z.B. 'Algo (G-A)'), falls vorhanden."""
+    title = e.get("title", "Unbekannt") or "Unbekannt"
+    typ   = (e.get("typ") or "").strip()
+    if typ and typ not in ("V", ""):   # V = reguläre Vorlesung → nicht extra ausweisen
+        title = f"{title} ({typ})"
+    return title
+
+
+def create_modern_embeds(events, date_str, course_group=SEMINAR_GROUP):
     if not events:
         return []
     embeds = [discord.Embed(
@@ -222,10 +239,13 @@ def create_modern_embeds(events, date_str, course_group="IT-25APP"):
     for e in events:
         start = datetime.datetime.fromtimestamp(e.get("start", 0), tz).strftime("%H:%M")
         end   = datetime.datetime.fromtimestamp(e.get("end",   0), tz).strftime("%H:%M")
-        embed = discord.Embed(title=e.get("title", "Unbekannt"), color=get_course_color(e.get("title", "")))
+        embed = discord.Embed(title=_event_title(e), color=get_course_color(e.get("title", "")))
         embed.add_field(name="Zeit",   value=f"`{start} – {end}`",       inline=True)
         embed.add_field(name="Raum",   value=f"`{e.get('sroom','?')}`",  inline=True)
         embed.add_field(name="Dozent", value=f"`{e.get('instructor','?')}`", inline=True)
+        bemerkung = (e.get("bemerkung") or "").strip()
+        if bemerkung:
+            embed.add_field(name="Hinweis", value=bemerkung[:200], inline=False)
         embeds.append(embed)
     return embeds
 
@@ -241,15 +261,18 @@ def create_change_embeds(added, removed, day_name):
     for event in added:
         start = datetime.datetime.fromtimestamp(event.get("start", 0), tz).strftime("%H:%M")
         end   = datetime.datetime.fromtimestamp(event.get("end",   0), tz).strftime("%H:%M")
-        embed = discord.Embed(title=f"NEU: {event.get('title','?')}", color=get_course_color(event.get("title","")))
+        embed = discord.Embed(title=f"NEU: {_event_title(event)}", color=get_course_color(event.get("title","")))
         embed.add_field(name="Zeit",   value=f"`{start} – {end}`",         inline=True)
         embed.add_field(name="Raum",   value=f"`{event.get('sroom','?')}`", inline=True)
         embed.add_field(name="Dozent", value=f"`{event.get('instructor','?')}`", inline=True)
+        bemerkung = (event.get("bemerkung") or "").strip()
+        if bemerkung:
+            embed.add_field(name="Hinweis", value=bemerkung[:200], inline=False)
         embeds.append(embed)
     for event in removed:
         start = datetime.datetime.fromtimestamp(event.get("start", 0), tz).strftime("%H:%M")
         end   = datetime.datetime.fromtimestamp(event.get("end",   0), tz).strftime("%H:%M")
-        embed = discord.Embed(title=f"ENTFERNT: {event.get('title','?')}", color=10038562)
+        embed = discord.Embed(title=f"ENTFERNT: {_event_title(event)}", color=10038562)
         embed.add_field(name="Zeit",   value=f"`{start} – {end}`",         inline=True)
         embed.add_field(name="Raum",   value=f"`{event.get('sroom','?')}`", inline=True)
         embed.add_field(name="Dozent", value=f"`{event.get('instructor','?')}`", inline=True)
@@ -257,7 +280,7 @@ def create_change_embeds(added, removed, day_name):
     return embeds
 
 
-def create_canteen_embeds(meals, date_str):
+def create_canteen_embeds(meals, date_str, show_nutrition: bool = True):
     if not meals:
         return []
     embeds = [discord.Embed(
@@ -285,16 +308,17 @@ def create_canteen_embeds(meals, date_str):
         if sp is not None:
             try:    embed.add_field(name="Preis", value=f"**{float(sp):.2f}€**", inline=True)
             except: embed.add_field(name="Preis", value=f"**{sp}**", inline=True)
-        if nutrition and any(nutrition.values()):
-            nt = ""
-            if nutrition.get("kcal"):         nt += f"→ **{nutrition['kcal']} kcal**\n"
-            if nutrition.get("Eiweiss"):      nt += f"→ Eiweiß: {nutrition['Eiweiss']}g\n"
-            if nutrition.get("Kohlenhydrate"):nt += f"→ Kohlenhydrate: {nutrition['Kohlenhydrate']}g\n"
-            if nutrition.get("Fette"):        nt += f"→ Fette: {nutrition['Fette']}g"
-            if nt:
-                embed.add_field(name="Nährwerte (ca. 350g, geschätzt)", value=nt, inline=True)
-        else:
-            embed.add_field(name="Nährwerte", value="*Keine Daten*", inline=True)
+        if show_nutrition:
+            if nutrition and any(nutrition.values()):
+                nt = ""
+                if nutrition.get("kcal"):         nt += f"→ **{nutrition['kcal']} kcal**\n"
+                if nutrition.get("Eiweiss"):      nt += f"→ Eiweiß: {nutrition['Eiweiss']}g\n"
+                if nutrition.get("Kohlenhydrate"):nt += f"→ Kohlenhydrate: {nutrition['Kohlenhydrate']}g\n"
+                if nutrition.get("Fette"):        nt += f"→ Fette: {nutrition['Fette']}g"
+                if nt:
+                    embed.add_field(name="Nährwerte (ca. 350g, geschätzt)", value=nt, inline=True)
+            else:
+                embed.add_field(name="Nährwerte", value="*Keine Daten*", inline=True)
         if notes:
             nt = ", ".join(notes)
             embed.add_field(name="Hinweise", value=nt[:200] + ("..." if len(nt) > 200 else ""), inline=False)
@@ -496,12 +520,12 @@ async def _run_test_api(test_ch: discord.TextChannel) -> bool:
     """Testet die Campus-Dual- und Mensa-API-Verbindung."""
     results = []
 
-    # Campus Dual
+    # Stundenplan (BA Dresden PlanServlet)
     try:
         events = await asyncio.to_thread(get_timetable)
-        results.append((True, f"Campus Dual API: {len(events)} Events zurückgegeben"))
+        results.append((True, f"Stundenplan-API (BA Dresden): {len(events)} Events zurückgegeben"))
     except Exception as e:
-        results.append((False, f"Campus Dual API Fehler: {e}"))
+        results.append((False, f"Stundenplan-API Fehler: {e}"))
 
     # Mensa
     today = datetime.datetime.now(tz).date()
@@ -843,6 +867,29 @@ async def timetable_week(interaction: discord.Interaction, erster_tag_der_woche:
     await log_action(f"/stundenplan_woche: {total} Events ab {monday.strftime('%d.%m.%Y')}")
 
 
+def _fetch_canteen_meals_no_ai(date):
+    """
+    Holt Mensa-Gerichte ohne KI-Nährwertabfragen.
+    Wird von /speiseplan_tag genutzt, um Discord-Interaction-Timeouts zu vermeiden:
+    get_canteen_meals() ruft für jedes Gericht OpenRouter auf (~1-2s pro Gericht),
+    was bei vielen Gerichten die 3-Sekunden-Frist überschreitet und
+    discord.errors.NotFound (10008) auslöst.
+    """
+    date_str = date.strftime("%Y-%m-%d")
+    url = f"https://api.studentenwerk-dresden.de/openmensa/v2/canteens/32/days/{date_str}/meals"
+    try:
+        response = requests.get(url, timeout=15)
+        if response.status_code != 200:
+            return []
+        meals = response.json()
+        for meal in meals:
+            meal["nutrition"] = None  # Nährwerte werden im Command nicht angezeigt
+        return meals
+    except Exception as e:
+        print(f"Error fetching canteen meals (no-AI): {e}")
+        return []
+
+
 @tree.command(name="speiseplan_tag", description="Zeige das Mensa-Angebot für einen bestimmten Tag")
 @app_commands.describe(tag="Tag (1-31)", monat="Monat (1-12)")
 async def canteen_day(interaction: discord.Interaction, tag: int, monat: int):
@@ -855,9 +902,10 @@ async def canteen_day(interaction: discord.Interaction, tag: int, monat: int):
         day = datetime.datetime(year, monat, tag).date()
     except ValueError:
         await interaction.followup.send("Ungültiges Datum."); return
-    meals    = await asyncio.to_thread(get_canteen_meals, day)
+    # Kein KI-Call – verhindert Interaction-Timeout (discord error 10008)
+    meals    = await asyncio.to_thread(_fetch_canteen_meals_no_ai, day)
     date_str = day.strftime("%A, %d. %B %Y")
-    embeds   = create_canteen_embeds(meals, date_str)
+    embeds   = create_canteen_embeds(meals, date_str, show_nutrition=False)
     if not embeds:
         await interaction.followup.send(f"Keine Gerichte für {day.strftime('%d.%m.%Y')}."); return
     for i in range(0, len(embeds), 10):
